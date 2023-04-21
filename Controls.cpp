@@ -13,6 +13,7 @@ MenuItem* MemMenuIt;
 HHOOK WinHook = NULL;
 HWND WindowHookHandle = NULL;
 bool is_menu = false;
+BOOL StateWindow = FALSE;
 
 //************************************* KONTROLKA SYS BUTTON OKNA**********************
 
@@ -263,6 +264,30 @@ int Sys_Button::CreateControl(HWND Parent, int pos_x, int pos_y, Button_Mode Mod
 
 //****************************KONTROLKA MENU OKNA****************************
 
+
+BOOL CALLBACK EnumChildW(_In_ HWND   hwnd, _In_ LPARAM lParam)
+{
+	RECT MenuRC,ControlRC;
+	HRGN rgn;
+	BOOL bl;
+
+	MenuButton *MButton;
+
+	MButton = (MenuButton*)lParam;
+	if (hwnd == MButton->Parent_ || hwnd == MButton->MenuWND)
+		return FALSE;
+	GetWindowRect(MButton->MenuWND, &MenuRC);
+	GetWindowRect(hwnd, &ControlRC);
+	rgn=CreateRectRgn(ControlRC.left, ControlRC.top, ControlRC.right, ControlRC.bottom);
+
+	bl=RectInRegion(rgn, &MenuRC);
+
+	if(bl)
+		EnableWindow(hwnd, StateWindow);
+
+	return TRUE;
+}
+
 LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 {
 	MenuButton* MButton;
@@ -279,6 +304,10 @@ LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 				MButton->menuPosY = -1;
 				MButton->ItemPos = -1;
 				MButton->PrevItemPos = -1;
+
+				StateWindow = TRUE;
+				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 				DestroyWindow(MButton->MenuWND);
 				MButton->MenuWND = NULL;
 				SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
@@ -297,6 +326,10 @@ LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 			MButton->menuPosY = -1;
 			MButton->ItemPos = -1;
 			MButton->PrevItemPos = -1;
+
+			StateWindow = TRUE;
+			EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 			DestroyWindow(MButton->MenuWND);
 			MButton->MenuWND = NULL;
 			SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
@@ -360,18 +393,20 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 			SendMessage(handle, WM_PAINT, 0, 0);
 		}
 		MButton->isCursor = TRUE;
-		//if (MButton->MouseFirst_menuItem == TRUE) break;
-	//7	MButton->MouseFirst_menuItem = TRUE;
+		if (MButton->MouseFirst_menuItem == TRUE) break;
+		MButton->MouseFirst_menuItem = TRUE;
+	
 		MouseEven_menuItem.cbSize = sizeof(TRACKMOUSEEVENT);
 		MouseEven_menuItem.dwFlags = TME_LEAVE;
 		MouseEven_menuItem.dwHoverTime = 0;
 		MouseEven_menuItem.hwndTrack = handle;
 		i = TrackMouseEvent(&MouseEven_menuItem);
-		
+
 		break;
 	}
 	case WM_MOUSELEAVE:
 	{
+		
 		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
 		MButton->MouseFirst_menuItem = FALSE;
 		MButton->menuPosY = -1;
@@ -385,6 +420,7 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 			WinHook = SetWindowsHookEx(WH_MOUSE, &MenuHookProc, MButton->instance_, GetCurrentThreadId());
 		}
 		*/
+
 		break;
 	}
 	case WM_PAINT:
@@ -455,6 +491,10 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 		MButton->ItemPos = -1;
 		MButton->PrevItemPos = -1;
 		MButton->MenuWND = NULL;
+
+		StateWindow = TRUE;
+		EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 		DestroyWindow(handle);
 		SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
 		PostMessage(MButton->Parent_, WM_COMMAND, MButton->MenuIt[i].ID, 0);
@@ -511,6 +551,10 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 					UnhookWindowsHookEx(WinHook);
 					WinHook = NULL;
 				}
+
+				StateWindow = TRUE;
+				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 				DestroyWindow(MButton->MenuWND);
 				MButton->MenuWND = NULL;
 				WindowHookHandle = NULL;
@@ -660,7 +704,12 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				MButton->IposY = MButton->posY - MButton->IsizeY;
 			}
 			MButton->MenuWND = CreateWindow(L"MENU_ITEM", NULL, WS_VISIBLE | WS_CHILD, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, MButton->Parent_, NULL, MButton->instance_, 0);
+			MButton->MouseFirst_menuItem = FALSE;
 			SetProp(MButton->MenuWND, L"MENU_BUTTON", (HANDLE)MButton);
+
+			StateWindow = FALSE;
+			EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 			is_menu = true;
 
 			if (WinHook != NULL)

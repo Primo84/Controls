@@ -15,6 +15,10 @@ LRESULT CALLBACK SysButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
 LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
+//Funkcja Wyliczaj¹ca okan nale¿¹ce do okna g³ównego
+
+BOOL CALLBACK EnumChildW(_In_ HWND   hwnd, _In_ LPARAM lParam);
+
 //Klasa kontroli systemowej
 
 class Sys_Button
