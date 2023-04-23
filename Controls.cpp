@@ -321,18 +321,23 @@ LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 		}
 		case  WM_RBUTTONDOWN:
 		{
-			MButton = (MenuButton*)GetProp(WindowHookHandle, L"MENU_BUTTON");
-			MButton->MouseFirst_menuItem = FALSE;
-			MButton->menuPosY = -1;
-			MButton->ItemPos = -1;
-			MButton->PrevItemPos = -1;
+			if (WindowHookHandle != NULL)
+			{
+				MButton = (MenuButton*)GetProp(WindowHookHandle, L"MENU_BUTTON");
+				if (MButton->isCursor) break;
+				MButton->MouseFirst_menuItem = FALSE;
+				MButton->menuPosY = -1;
+				MButton->ItemPos = -1;
+				MButton->PrevItemPos = -1;
 
-			StateWindow = TRUE;
-			EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+				StateWindow = TRUE;
+				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
-			DestroyWindow(MButton->MenuWND);
-			MButton->MenuWND = NULL;
-			SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
+				DestroyWindow(MButton->MenuWND);
+				MButton->MenuWND = NULL;
+				SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
+			}
+
 			UnhookWindowsHookEx(WinHook);
 			WindowHookHandle = NULL;
 			WinHook = NULL;
@@ -485,6 +490,10 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 		}
 
 		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+
+		StateWindow = TRUE;
+		EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
 		i = MButton->menuPosY / MButton->sizeY;
 		MButton->MouseFirst_menuItem = FALSE;
 		MButton->menuPosY = -1;
@@ -492,8 +501,6 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 		MButton->PrevItemPos = -1;
 		MButton->MenuWND = NULL;
 
-		StateWindow = TRUE;
-		EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
 		DestroyWindow(handle);
 		SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
@@ -556,6 +563,7 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
 				DestroyWindow(MButton->MenuWND);
+
 				MButton->MenuWND = NULL;
 				WindowHookHandle = NULL;
 			//}
