@@ -1,5 +1,6 @@
 
 #include "Controls.h"
+#include "Windowsx.h"
 
 int SysButton_Count = 0;
 int MenuButtonCount = 0;
@@ -14,6 +15,7 @@ HHOOK WinHook = NULL;
 HWND WindowHookHandle = NULL;
 bool is_menu = false;
 BOOL StateWindow = FALSE;
+HWND CapturedWindow = NULL;
 
 //************************************* KONTROLKA SYS BUTTON OKNA**********************
 
@@ -275,15 +277,17 @@ BOOL CALLBACK EnumChildW(_In_ HWND   hwnd, _In_ LPARAM lParam)
 
 	MButton = (MenuButton*)lParam;
 	if (hwnd == MButton->Parent_ || hwnd == MButton->MenuWND)
-		return FALSE;
+		return TRUE;
 	GetWindowRect(MButton->MenuWND, &MenuRC);
 	GetWindowRect(hwnd, &ControlRC);
 	rgn=CreateRectRgn(ControlRC.left, ControlRC.top, ControlRC.right, ControlRC.bottom);
 
 	bl=RectInRegion(rgn, &MenuRC);
 
-	if(bl)
-		EnableWindow(hwnd, StateWindow);
+	if (bl)
+	{
+		//EnableWindow(hwnd, StateWindow);
+	}
 
 	return TRUE;
 }
@@ -305,9 +309,10 @@ LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 				MButton->ItemPos = -1;
 				MButton->PrevItemPos = -1;
 
-				StateWindow = TRUE;
-				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+			//	StateWindow = TRUE;
+			//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
+	
 				DestroyWindow(MButton->MenuWND);
 				MButton->MenuWND = NULL;
 				SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
@@ -330,8 +335,8 @@ LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 				MButton->ItemPos = -1;
 				MButton->PrevItemPos = -1;
 
-				StateWindow = TRUE;
-				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+			//	StateWindow = TRUE;
+			//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
 				DestroyWindow(MButton->MenuWND);
 				MButton->MenuWND = NULL;
@@ -355,162 +360,212 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 	PAINTSTRUCT Pstruct;
 	HDC DestDc, SrcDc;
 	int i, x, y;
-	RECT F_Rect;
+	RECT F_Rect, W_Rect;
 	COLORREF col;
 	COLORREF MPcolor;
 	HBRUSH MPBackgr;
+	int xPos, yPos;
+	POINT pt;
 
 	switch (code)
 	{
-	case WM_CLOSE:
-	{
-		DestroyWindow(handle);
-		break;
-	}
-	case WM_DESTROY:
-	{
-		if (WinHook != NULL)
+		case WM_CLOSE:
 		{
-			UnhookWindowsHookEx(WinHook);
-			WinHook = NULL;
-			WindowHookHandle = NULL;
+			DestroyWindow(handle);
+			break;
 		}
-		break;
-	}
+		case WM_DESTROY:
+		{
+			if (WinHook != NULL)
+			{
+				UnhookWindowsHookEx(WinHook);
+				WinHook = NULL;
+				WindowHookHandle = NULL;
+			}
+			break;
+		}
 
-	case WM_MOUSEMOVE:
-	{
+		case WM_MOUSEMOVE:
+		{
+			/*
+			if (WinHook != NULL)
+			{
+				UnhookWindowsHookEx(WinHook);
+				WinHook = NULL;
+				WindowHookHandle = NULL;
+			}
+			*/
+
+			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+			MButton->menuPosY = HIWORD(lp);
+			MButton->ItemPos = MButton->menuPosY / MButton->sizeY;
+			if (MButton->PrevItemPos != MButton->ItemPos)
+			{
+				MButton->PrevItemPos = MButton->ItemPos;
+				SendMessage(handle, WM_PAINT, 0, 0);
+			}
+			MButton->isCursor = TRUE;
+			/*
+			xPos = GET_X_LPARAM(lp);
+			yPos = GET_Y_LPARAM(lp);
+			pt.x = xPos;
+			pt.y = yPos;
+			ClientToScreen(handle, &pt);
+			GetWindowRect(handle, &W_Rect);
+			/*
+			if (!PtInRect(&W_Rect, pt))
+			{
+				if (CapturedWindow != NULL)
+				{
+					ReleaseCapture();
+					CapturedWindow = NULL;
+					MButton->MouseFirst_menuItem = FALSE;
+					MButton->menuPosY = -1;
+					MButton->ItemPos = -1;
+					MButton->PrevItemPos = -1;
+					MButton->isCursor = FALSE;
+				}
+				break;
+				//SendMessage(handle,WM_MOUSELEAVE,0,0);
+			}
+
+			*/
+			if (MButton->MouseFirst_menuItem == TRUE) break;
+			MButton->MouseFirst_menuItem = TRUE;
 		/*
-		if (WinHook != NULL)
-		{
-			UnhookWindowsHookEx(WinHook);
-			WinHook = NULL;
-			WindowHookHandle = NULL;
-		}
-		*/
+			if (CapturedWindow != NULL)
+			{
+				ReleaseCapture();
+				CapturedWindow = NULL;
+			}
+			//CapturedWindow = SetCapture(handle);
 
-		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
-		MButton->menuPosY = HIWORD(lp);
-		MButton->ItemPos = MButton->menuPosY / MButton->sizeY;
-		if (MButton->PrevItemPos != MButton->ItemPos)
-		{
-			MButton->PrevItemPos = MButton->ItemPos;
-			SendMessage(handle, WM_PAINT, 0, 0);
-		}
-		MButton->isCursor = TRUE;
-		if (MButton->MouseFirst_menuItem == TRUE) break;
-		MButton->MouseFirst_menuItem = TRUE;
-	
-		MouseEven_menuItem.cbSize = sizeof(TRACKMOUSEEVENT);
-		MouseEven_menuItem.dwFlags = TME_LEAVE;
-		MouseEven_menuItem.dwHoverTime = 0;
-		MouseEven_menuItem.hwndTrack = handle;
-		i = TrackMouseEvent(&MouseEven_menuItem);
+			*/
+		//	StateWindow = TRUE;
+		//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
-		break;
-	}
-	case WM_MOUSELEAVE:
-	{
+			MouseEven_menuItem.cbSize = sizeof(TRACKMOUSEEVENT);
+			MouseEven_menuItem.dwFlags = TME_LEAVE;
+			MouseEven_menuItem.dwHoverTime = 0;
+			MouseEven_menuItem.hwndTrack = handle;
+			i = TrackMouseEvent(&MouseEven_menuItem);
+
+			break;
+		}
+		case WM_MOUSELEAVE:
+		{
 		
-		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
-		MButton->MouseFirst_menuItem = FALSE;
-		MButton->menuPosY = -1;
-		MButton->ItemPos = -1;
-		MButton->PrevItemPos = -1;
-		MButton->isCursor = FALSE;
-		/*
-		if (WinHook == NULL)
-		{
-			WindowHookHandle = MButton->MenuWND;
-			WinHook = SetWindowsHookEx(WH_MOUSE, &MenuHookProc, MButton->instance_, GetCurrentThreadId());
+			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+			MButton->MouseFirst_menuItem = FALSE;
+			MButton->menuPosY = -1;
+			MButton->ItemPos = -1;
+			MButton->PrevItemPos = -1;
+			MButton->isCursor = FALSE;
+			/*
+			if (WinHook == NULL)
+			{
+				WindowHookHandle = MButton->MenuWND;
+				WinHook = SetWindowsHookEx(WH_MOUSE, &MenuHookProc, MButton->instance_, GetCurrentThreadId());
+			}
+			*/
+			/*
+			if (CapturedWindow != NULL)
+			{
+				ReleaseCapture();
+				CapturedWindow = NULL;
+			}
+			*/
+			break;
 		}
-		*/
-
-		break;
-	}
-	case WM_PAINT:
-	{
-		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
-		DestDc = GetWindowDC(handle);
+		case WM_PAINT:
+		{
+			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+			DestDc = GetWindowDC(handle);
 		
-		BeginPaint(handle, &Pstruct);
-		if (MButton->pBackground == NULL)  /*
-												Odrywosuje tlo rodzica znajduj¹cego siê w obszarze kontrolki
+			BeginPaint(handle, &Pstruct);
+			if (MButton->pBackground == NULL)  /*
+													Odrywosuje tlo rodzica znajduj¹cego siê w obszarze kontrolki
 											
-										   */
-		{
-			F_Rect.left = MButton->IposX;
-			F_Rect.top = MButton->IposY;
-			F_Rect.right = MButton->IposX + MButton->IsizeX;
-			F_Rect.bottom = MButton->IposY + MButton->IsizeY;
-
-			RedrawWindow(MButton->Parent_, &F_Rect, NULL,RDW_ERASE | RDW_UPDATENOW | RDW_INVALIDATE | RDW_NOCHILDREN);
-		}
-		else  // w przeciwnym wypadku wypelnia tlo podanym kolorem podczas tworzenia kontrolki
-		{
-			F_Rect.left = 0;
-			F_Rect.top = 0;
-			F_Rect.right = MButton->IsizeX;
-			F_Rect.bottom = MButton->IsizeY;
-			FillRect(DestDc, &F_Rect, MButton->pBackground);
-		}
-		if (MButton->ItemCount > 0)
-		{
-			if (MButton->menuPosY >= 0 && MButton->MouseTextBackg != NULL)
+											   */
 			{
-				i = MButton->menuPosY / MButton->sizeY;
-				//if (MButton->IsizeY % menuPosY > 0) i++;
+				F_Rect.left = MButton->IposX;
+				F_Rect.top = MButton->IposY;
+				F_Rect.right = MButton->IposX + MButton->IsizeX;
+				F_Rect.bottom = MButton->IposY + MButton->IsizeY;
+
+				RedrawWindow(MButton->Parent_, &F_Rect, NULL,RDW_ERASE | RDW_UPDATENOW | RDW_INVALIDATE | RDW_NOCHILDREN);
+			}
+			else  // w przeciwnym wypadku wypelnia tlo podanym kolorem podczas tworzenia kontrolki
+			{
 				F_Rect.left = 0;
-				F_Rect.top = MButton->sizeY * i;
+				F_Rect.top = 0;
 				F_Rect.right = MButton->IsizeX;
-				F_Rect.bottom = (MButton->sizeY * i) + MButton->sizeY;
-				FillRect(DestDc, &F_Rect, MButton->MouseTextBackg);
+				F_Rect.bottom = MButton->IsizeY;
+				FillRect(DestDc, &F_Rect, MButton->pBackground);
 			}
-			SelectObject(DestDc, MButton->FontT);
-			SetTextColor(DestDc, MButton->TextColor);
-			SetTextCharacterExtra(DestDc, 1);
-			SetBkMode(DestDc, TRANSPARENT);
-			for (i = 0; i < MButton->ItemCount; i++)
+			if (MButton->ItemCount > 0)
 			{
-				y = i * MButton->sizeY;
-				y = y + 3;
-				TextOutA(DestDc, 25, (i * MButton->sizeY) + 3, MButton->MenuIt[i].MenuText, strlen(MButton->MenuIt[i].MenuText));
+				if (MButton->menuPosY >= 0 && MButton->MouseTextBackg != NULL)
+				{
+					i = MButton->menuPosY / MButton->sizeY;
+					//if (MButton->IsizeY % menuPosY > 0) i++;
+					F_Rect.left = 0;
+					F_Rect.top = MButton->sizeY * i;
+					F_Rect.right = MButton->IsizeX;
+					F_Rect.bottom = (MButton->sizeY * i) + MButton->sizeY;
+					FillRect(DestDc, &F_Rect, MButton->MouseTextBackg);
+				}
+				SelectObject(DestDc, MButton->FontT);
+				SetTextColor(DestDc, MButton->TextColor);
+				SetTextCharacterExtra(DestDc, 1);
+				SetBkMode(DestDc, TRANSPARENT);
+				for (i = 0; i < MButton->ItemCount; i++)
+				{
+					y = i * MButton->sizeY;
+					y = y + 3;
+					TextOutA(DestDc, 25, (i * MButton->sizeY) + 3, MButton->MenuIt[i].MenuText, strlen(MButton->MenuIt[i].MenuText));
+				}
 			}
+			EndPaint(handle, &Pstruct);
+			break;
 		}
-		EndPaint(handle, &Pstruct);
-		break;
-	}
-	case WM_LBUTTONDOWN:
-	{
-		if (WinHook != NULL)
+		case WM_LBUTTONDOWN:
 		{
-			UnhookWindowsHookEx(WinHook);
-			WinHook = NULL;
-			WindowHookHandle = NULL;
+			if (WinHook != NULL)
+			{
+				UnhookWindowsHookEx(WinHook);
+				WinHook = NULL;
+				WindowHookHandle = NULL;
+			}
+
+			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+
+		//	StateWindow = TRUE;
+		//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
+			if (CapturedWindow != NULL)
+			{
+				ReleaseCapture();
+				CapturedWindow = NULL;
+			}
+
+			i = MButton->menuPosY / MButton->sizeY;
+			MButton->MouseFirst_menuItem = FALSE;
+			MButton->menuPosY = -1;
+			MButton->ItemPos = -1;
+			MButton->PrevItemPos = -1;
+			MButton->MenuWND = NULL;
+
+
+			DestroyWindow(handle);
+			SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
+			PostMessage(MButton->Parent_, WM_COMMAND, MButton->MenuIt[i].ID, 0);
+			//SendMessage(handle, WM_MOUSELEAVE, 0, 0);
+			is_menu = false;
+			break;
 		}
-
-		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
-
-		StateWindow = TRUE;
-		EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
-
-		i = MButton->menuPosY / MButton->sizeY;
-		MButton->MouseFirst_menuItem = FALSE;
-		MButton->menuPosY = -1;
-		MButton->ItemPos = -1;
-		MButton->PrevItemPos = -1;
-		MButton->MenuWND = NULL;
-
-
-		DestroyWindow(handle);
-		SendMessage(MButton->MainWND, WM_MOUSELEAVE, 0, 0);
-		PostMessage(MButton->Parent_, WM_COMMAND, MButton->MenuIt[i].ID, 0);
-		//SendMessage(handle, WM_MOUSELEAVE, 0, 0);
-		is_menu = false;
-		break;
-	}
-	default: return DefWindowProc(handle, code, wp, lp);
-	}
+		default: return DefWindowProc(handle, code, wp, lp);
+		}
 	return 0;
 }
 
@@ -559,8 +614,10 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 					WinHook = NULL;
 				}
 
-				StateWindow = TRUE;
-				EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+			//	StateWindow = TRUE;
+			//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+
+
 
 				DestroyWindow(MButton->MenuWND);
 
@@ -711,13 +768,17 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				MButton->IposX = MButton->posX + MButton->sizeX - MButton->IsizeX;
 				MButton->IposY = MButton->posY - MButton->IsizeY;
 			}
-			MButton->MenuWND = CreateWindow(L"MENU_ITEM", NULL, WS_VISIBLE | WS_CHILD, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, MButton->Parent_, NULL, MButton->instance_, 0);
+			MButton->MenuWND = CreateWindowEx(WS_EX_TRANSPARENT,L"MENU_ITEM", NULL, WS_VISIBLE | WS_CHILD, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, MButton->Parent_, NULL, MButton->instance_, 0);
 			MButton->MouseFirst_menuItem = FALSE;
 			SetProp(MButton->MenuWND, L"MENU_BUTTON", (HANDLE)MButton);
 
-			StateWindow = FALSE;
-			EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
+			//StateWindow = FALSE;
+			//EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
 
+			SetWindowPos(MButton->MenuWND, HWND_TOP, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, SWP_SHOWWINDOW);
+
+
+			
 			is_menu = true;
 
 			if (WinHook != NULL)
