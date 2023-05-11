@@ -67,7 +67,7 @@ protected:
 typedef struct Menu_Item
 {
 	int ID;
-	char MenuText[40];
+	char MenuText[50];
 }MenuItem;
 
 class MenuButton
@@ -123,6 +123,10 @@ public:
 	//Dodaje element do menu
 
 	int AddItem(int ID, char* Text);
+
+	int GetMenuItemText(int pos, char* Text, int TextCount);
+	
+	int SetMenuitemText(int pos, char* Text);
 
 protected:
 };

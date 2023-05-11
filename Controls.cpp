@@ -954,6 +954,45 @@ int MenuButton::AddItem(int ID, char* Text)
 	return 0;
 }
 
+int MenuButton::GetMenuItemText(int pos, char* Text, int TextCount)
+{
+	int TextL;
+
+	if (Text == NULL)
+		return 1;
+
+	if (pos > ItemCount - 1) 
+		return 2;
+
+	TextL = strlen(MenuIt[pos].MenuText);
+	if (TextL > TextCount)
+		return 3;
+
+	memset(Text, 0, TextCount);
+	strcpy(Text, MenuIt[pos].MenuText);
+
+	return 0;
+}
+
+int MenuButton::SetMenuitemText(int pos, char* Text)
+{
+	int TextL;
+
+	if (Text == NULL)
+		return 1;
+
+	if (pos > ItemCount - 1)
+		return 2;
+
+	TextL = strlen(Text);
+	if (TextL > 50)
+		return 3;
+
+	memset(&MenuIt[pos].MenuText[0], 0, 50);
+	strcpy(MenuIt[pos].MenuText, Text);
+
+	return 0;
+}
 
 
 
