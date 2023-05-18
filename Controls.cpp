@@ -509,18 +509,23 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				{
 					i = MButton->menuPosY / MButton->sizeY;
 					//if (MButton->IsizeY % menuPosY > 0) i++;
-					F_Rect.left = 0;
-					F_Rect.top = MButton->sizeY * i;
-					F_Rect.right = MButton->IsizeX;
-					F_Rect.bottom = (MButton->sizeY * i) + MButton->sizeY;
-					FillRect(DestDc, &F_Rect, MButton->MouseTextBackg);
+					if (MButton->MenuIt[i].isEnable)
+					{
+						F_Rect.left = 0;
+						F_Rect.top = MButton->sizeY * i;
+						F_Rect.right = MButton->IsizeX;
+						F_Rect.bottom = (MButton->sizeY * i) + MButton->sizeY;
+						FillRect(DestDc, &F_Rect, MButton->MouseTextBackg);
+					}
 				}
 				SelectObject(DestDc, MButton->FontT);
-				SetTextColor(DestDc, MButton->TextColor);
 				SetTextCharacterExtra(DestDc, 1);
 				SetBkMode(DestDc, TRANSPARENT);
 				for (i = 0; i < MButton->ItemCount; i++)
 				{
+					if (MButton->MenuIt[i].isEnable)
+						SetTextColor(DestDc, MButton->TextColor);
+					else SetTextColor(DestDc, MButton->DisableTextItem);
 					y = i * MButton->sizeY;
 					y = y + 3;
 					TextOutA(DestDc, 25, (i * MButton->sizeY) + 3, MButton->MenuIt[i].MenuText, strlen(MButton->MenuIt[i].MenuText));
@@ -531,6 +536,9 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 		}
 		case WM_LBUTTONDOWN:
 		{
+			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+			if (MButton->MenuIt[MButton->ItemPos].isEnable == FALSE)
+				break;
 			if (WinHook != NULL)
 			{
 				UnhookWindowsHookEx(WinHook);
@@ -538,7 +546,6 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				WindowHookHandle = NULL;
 			}
 
-			MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
 
 		//	StateWindow = TRUE;
 		//	EnumChildWindows(MButton->Parent_, &EnumChildW, (LPARAM)MButton);
@@ -878,7 +885,7 @@ MenuButton::~MenuButton()
 		delete MenuIt;
 	DeleteObject(FontT);
 }
-int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, COLORREF TextCol, COLORREF MenuTextCol, int Font_Width, HBRUSH MouseTextBackground, HBRUSH pBackgr, HBRUSH mBackgr, int font_size, Item_Mode Mode)
+int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, COLORREF TextCol, COLORREF MenuTextCol, COLORREF TextItemDisable, int Font_Width, HBRUSH MouseTextBackground, HBRUSH pBackgr, HBRUSH mBackgr, int font_size, Item_Mode Mode)
 {
 	int size;
 	HDC WContext;
@@ -890,6 +897,7 @@ int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, CO
 	MouseTextBackg = MouseTextBackground;
 	TextColor = TextCol;
 	MouseTextColor = MenuTextCol;
+	DisableTextItem = TextItemDisable;
 	ItemCount = 0;
 	MenuIt = NULL;
 	Paint_Mode = Mode;
@@ -927,7 +935,7 @@ int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, CO
 	return 0;
 }
 
-int MenuButton::AddItem(int ID, char* Text)
+int MenuButton::AddItem(int ID, char* Text, BOOL is_Enable)
 {
 	int size, i;
 
@@ -942,15 +950,13 @@ int MenuButton::AddItem(int ID, char* Text)
 		delete MemMenuIt;
 	}
 	MenuIt[ItemCount].ID = ID;
+	MenuIt[ItemCount].isEnable = is_Enable;
 	size = strlen(Text);
 	if (size > 40) size = 40;
 	memset(MenuIt[ItemCount].MenuText, 0, 40);
 	memcpy(MenuIt[ItemCount].MenuText, Text, size);
 	ItemCount++;
-	for (i = 0; i < ItemCount; i++)
-	{
-		MenuIt[i] = MenuIt[i];
-	}
+
 	return 0;
 }
 
@@ -994,6 +1000,17 @@ int MenuButton::SetMenuitemText(int pos, char* Text)
 	return 0;
 }
 
+int MenuButton::SetMenuitemEnable(int pos, BOOL is_Enable)
+{
+
+	if (pos > ItemCount - 1)
+		return 2;
+
+
+	MenuIt[pos].isEnable = is_Enable;
+
+	return 0;
+}
 
 
 
@@ -1064,40 +1081,6 @@ LRESULT  _stdcall ChkBoxProc(HWND hwd, int code, WPARAM wp, LPARAM lp)
 				MEv.hwndTrack = hwd;
 				TrackMouseEvent(&MEv);
 			}
-			/*
-			hwnd = GetCapture();
-			if (hwnd == NULL) SetCapture(hwd);
-			GetWindowRect(hwd, &crc);
-			//rx=crc.right-crc.left;
-			//ry=crc.bottom-crc.top;
-			pos = GetMessagePos();
-			pt = (MPOINT*)&pos;
-			p.x = (LONG)pt->x;
-			p.y = (LONG)pt->y;
-			//ScreenToClient(hwd,&p);
-			if ((p.x < crc.left + 4) || (p.y < crc.top + 4) || (p.x > crc.right - 4) || (p.y > crc.bottom - 4))
-			{
-				hwnd = GetCapture();
-				ReleaseCapture();
-				bl = GetPropA(hwd, "is_hov");
-				if (bl)
-				{
-					SetPropA(hwd, "is_hov", (HANDLE)false);
-					ShowWindow(hwd, SW_HIDE);
-					ShowWindow(hwd, SW_NORMAL);
-				}
-				break;
-			}
-			ReleaseCapture();
-			bl = (bool)GetPropA(hwd, "is_hov");
-			if (!bl)
-			{
-				SetPropA(hwd, "is_hov", (HANDLE)true);
-				ShowWindow(hwd, SW_HIDE);
-				ShowWindow(hwd, SW_NORMAL);
-			}
-			//RedrawWindow(hwd,NULL,NULL,RDW_INVALIDATE|RDW_ERASE);
-			*/
 			break;
 		}
 

@@ -68,6 +68,7 @@ typedef struct Menu_Item
 {
 	int ID;
 	char MenuText[50];
+	BOOL isEnable;
 }MenuItem;
 
 class MenuButton
@@ -89,9 +90,10 @@ public:
 	char Text[25];							//Tekst kontrolki
 	COLORREF TextColor;						//Kolor tekstu
 	COLORREF MouseTextColor;				//Kolor tekstu gdy myszka znajdyje sie w obszarze kontrolki
-	HBRUSH MouseTextBackg;				//Kolor tla gdy myszka znajduje sie na danej pozycji menu item
+	COLORREF DisableTextItem;				//Kolor tekstu menu item które jest wy³¹czone
+	HBRUSH MouseTextBackg;					//Kolor tla gdy myszka znajduje sie na danej pozycji menu item
 	int posX, posY, sizeX, sizeY;			//Pozycja kontrolki
-	HBRUSH pBackground, mBackground;		/* Kolory rysowania
+	HBRUSH pBackground, mBackground;		/* Kolory rysowania tla menu
 												pBackground - normalny kolor
 												mBackground - kolor aktywowany, kiedy kursor
 												znajduje sie w obszarze kontrolki
@@ -118,15 +120,17 @@ public:
 
 	//Tworzy okno kontrolki
 
-	int CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_ = NULL, COLORREF TextCol = RGB(8, 12, 7), COLORREF MenuTextCol = RGB(150, 155, 98), int Font_Width = 2, HBRUSH MouseTextBackground = NULL, HBRUSH pBackgr = NULL, HBRUSH mBackgr = NULL, int font_size = 16, Item_Mode Mode = bott_left);
+	int CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, COLORREF TextCol, COLORREF MenuTextCol, COLORREF TextItemDisable, int Font_Width = 2, HBRUSH MouseTextBackground = NULL, HBRUSH pBackgr = NULL, HBRUSH mBackgr = NULL, int font_size = 16, Item_Mode Mode = bott_left);
 
 	//Dodaje element do menu
 
-	int AddItem(int ID, char* Text);
+	int AddItem(int ID, char* Text, BOOL is_Enable);
 
 	int GetMenuItemText(int pos, char* Text, int TextCount);
 	
 	int SetMenuitemText(int pos, char* Text);
+
+	int SetMenuitemEnable(int pos, BOOL is_Enable);
 
 protected:
 };
