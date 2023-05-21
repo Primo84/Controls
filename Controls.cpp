@@ -5,6 +5,7 @@
 int SysButton_Count = 0;
 int MenuButtonCount = 0;
 int CheckBoxCount = 0;
+int StaticTextCount = 0;
 
 HBRUSH Brush;
 TRACKMOUSEEVENT MouseEvent_sys, MouseEvent_menu, MouseEven_menuItem;
@@ -239,7 +240,8 @@ Sys_Button::~Sys_Button()
 
 int Sys_Button::CreateControl(HWND Parent, int pos_x, int pos_y, Button_Mode ModeB, COLORREF color, COLORREF color_M, HBRUSH pBackgr, HBRUSH mBackgr, int size)
 {
-	Parent_ = Parent;
+	if(Parent!=NULL)
+		Parent_ = Parent;
 	pColor = color;
 	mColor = color_M;
 	Mode = ModeB;
@@ -250,7 +252,7 @@ int Sys_Button::CreateControl(HWND Parent, int pos_x, int pos_y, Button_Mode Mod
 	mBackground = mBackgr;
 	FirstPaint = TRUE;
 
-	MainWND = CreateWindow(L"SYS_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, sizeXY, sizeXY, Parent, NULL, instance_, 0);
+	MainWND = CreateWindow(L"SYS_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, sizeXY, sizeXY, Parent_, NULL, instance_, 0);
 	if (MainWND == NULL) return -1;
 
 
@@ -267,30 +269,7 @@ int Sys_Button::CreateControl(HWND Parent, int pos_x, int pos_y, Button_Mode Mod
 //****************************KONTROLKA MENU OKNA****************************
 
 
-BOOL CALLBACK EnumChildW(_In_ HWND   hwnd, _In_ LPARAM lParam)
-{
-	RECT MenuRC,ControlRC;
-	HRGN rgn;
-	BOOL bl;
 
-	MenuButton *MButton;
-
-	MButton = (MenuButton*)lParam;
-	if (hwnd == MButton->Parent_ || hwnd == MButton->MenuWND)
-		return TRUE;
-	GetWindowRect(MButton->MenuWND, &MenuRC);
-	GetWindowRect(hwnd, &ControlRC);
-	rgn=CreateRectRgn(ControlRC.left, ControlRC.top, ControlRC.right, ControlRC.bottom);
-
-	bl=RectInRegion(rgn, &MenuRC);
-
-	if (bl)
-	{
-		//EnableWindow(hwnd, StateWindow);
-	}
-
-	return TRUE;
-}
 
 LRESULT CALLBACK MenuHookProc(int code, WPARAM wp, LPARAM lp)
 {
@@ -775,7 +754,7 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				MButton->IposX = MButton->posX + MButton->sizeX - MButton->IsizeX;
 				MButton->IposY = MButton->posY - MButton->IsizeY;
 			}
-			MButton->MenuWND = CreateWindowEx(WS_EX_TRANSPARENT,L"MENU_ITEM", NULL, WS_VISIBLE | WS_CHILD, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, MButton->Parent_, NULL, MButton->instance_, 0);
+			MButton->MenuWND = CreateWindowEx(WS_EX_TRANSPARENT ,L"MENU_ITEM", NULL, WS_VISIBLE | WS_CHILD, MButton->IposX, MButton->IposY, MButton->IsizeX, MButton->IsizeY, MButton->Parent_, NULL, MButton->instance_, 0);
 			MButton->MouseFirst_menuItem = FALSE;
 			SetProp(MButton->MenuWND, L"MENU_BUTTON", (HANDLE)MButton);
 
@@ -889,7 +868,9 @@ int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, CO
 {
 	int size;
 	HDC WContext;
-	Parent_ = Parent;
+
+	if(Parent!=NULL)
+		Parent_ = Parent;
 	posX = pos_x;
 	posY = pos_y;
 	pBackground = pBackgr;
@@ -918,7 +899,7 @@ int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, CO
 	}
 	else sprintf_s(Text, "Menu");
 	FontT = CreateFontA(font_size, Font_Width, 0, 0, 1, 0, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, "Times New Roman");
-	MainWND = CreateWindow(L"MENU_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, 25, 5, Parent, NULL, instance_, 0);
+	MainWND = CreateWindow(L"MENU_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, 25, 5, Parent_, NULL, instance_, 0);
 	if (MainWND == NULL) return -1;
 	WContext = GetWindowDC(MainWND);
 	SelectObject(WContext, FontT);
@@ -927,7 +908,7 @@ int MenuButton::CreateControl(HWND Parent, int pos_x, int pos_y, char* Text_, CO
 	DestroyWindow(MainWND);
 	sizeX = FontSize.cx + 4;
 	sizeY = FontSize.cy + 6;
-	MainWND = CreateWindow(L"MENU_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, sizeX, sizeY, Parent, NULL, instance_, 0);
+	MainWND = CreateWindow(L"MENU_BUTTON", NULL, WS_VISIBLE | WS_CHILD, pos_x, pos_y, sizeX, sizeY, Parent_, NULL, instance_, 0);
 	if (MainWND == NULL) return -1;
 
 
@@ -1328,7 +1309,10 @@ CheckBox::~CheckBox()
 
 int CheckBox::CreateControl(HWND Parent, int pos_x, int pos_y, int size_x, int size_y, char* Text_, COLORREF BackgColor, COLORREF HoverColor, COLORREF CheckColor, COLORREF TextColor, COLORREF TextHoverColor, bool isChecked)
 {
-	MainWND = CreateWindowA("Check", Text_, WS_CHILD | WS_VISIBLE, pos_x, pos_y, size_x, size_y, Parent, NULL, instance_, 0);
+	if (Parent != NULL)
+		Parent_ = Parent;
+
+	MainWND = CreateWindowA("Check", Text_, WS_CHILD | WS_VISIBLE, pos_x, pos_y, size_x, size_y, Parent_, NULL, instance_, 0);
 	Check_SetHoverColor((DWORD)HoverColor);
 	Check_SetBkg((DWORD)BackgColor);
 	Check_check(isChecked);
@@ -1378,4 +1362,204 @@ void CheckBox::Check_SetTextColor(DWORD color)
 void CheckBox::Check_SetTextHoverColor(DWORD color)
 {
 	SendMessage(MainWND, WM_USER + 16, 0, (LPARAM)color);
+}
+
+
+
+
+/*
+
+	---------------------------Static Text----------------------------------------
+
+
+*/
+
+
+LRESULT CALLBACK StaticTextProc(HWND handle, int code, WPARAM wp, LPARAM lp)
+{
+	StaticText *StaticT;
+	HDC DestDc;
+	PAINTSTRUCT Pstruct;
+	RECT F_Rect;
+
+	switch (code)
+	{
+		case WM_CLOSE:
+		{
+			DestroyWindow(handle);
+			break;
+		}
+		case WM_DESTROY:
+		{
+			break;
+		}
+		case WM_PAINT:
+		{
+			StaticT = (StaticText*)GetProp(handle, L"STATIC_TEXT");
+			DestDc = GetWindowDC(handle);
+
+			BeginPaint(handle, &Pstruct);
+			if (StaticT->TextBackground== NULL)  /*
+													Odrywosuje tlo z zapisanych wczesniej pikseli
+													nalezacych do okna rodzica
+											   */
+			{
+				F_Rect.left = StaticT->posX;
+				F_Rect.top = StaticT->posY;
+				F_Rect.right = StaticT->posX + StaticT->sizeX;
+				F_Rect.bottom = StaticT->posY + StaticT->sizeY;
+
+				RedrawWindow(StaticT->Parent_, &F_Rect, NULL, RDW_ERASE | RDW_UPDATENOW | RDW_INVALIDATE | RDW_NOCHILDREN);
+			}
+			else  // w przeciwnym wypadku wypelnia tlo podanym kolorem podczas tworzenia kontrolki
+			{
+				F_Rect.left = 0;
+				F_Rect.top = 0;
+				F_Rect.right = StaticT->sizeX;
+				F_Rect.bottom = StaticT->sizeY;
+				FillRect(DestDc, &F_Rect, StaticT->TextBackground);
+			}
+			SelectObject(DestDc, StaticT->Font);
+			SetTextColor(DestDc, StaticT->TextColor);
+			SetTextCharacterExtra(DestDc, 1);
+			SetBkMode(DestDc, TRANSPARENT);
+			TextOutA(DestDc, 2, 3, StaticT->Text, strlen(StaticT->Text));
+			EndPaint(handle, &Pstruct);
+			break;
+		}
+
+		default: return DefWindowProc(handle, code, wp, lp);
+	}
+}
+
+StaticText::StaticText(HWND Parent, HINSTANCE instance)
+{
+
+	if (Parent != NULL)
+		Parent_ = Parent;
+	if (instance != NULL)
+		instance_ = instance;
+
+	Font = NULL;
+
+	if (StaticTextCount == 0)
+	{
+		memset(&MainClass, 0, sizeof(WNDCLASSEX));
+		MainClass.cbSize = sizeof(WNDCLASSEX);
+		MainClass.lpszClassName = L"STATICTEXT_CONTROL";
+		MainClass.hInstance = instance_;
+		MainClass.style = CS_VREDRAW | CS_HREDRAW | CS_OWNDC;
+		MainClass.lpfnWndProc = (WNDPROC)&StaticTextProc;
+		MainClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		RegisterClassEx(&MainClass);
+
+	}
+	StaticTextCount++;
+
+}
+
+StaticText::StaticText()
+{
+	Parent_ = NULL;
+	instance_ = NULL;
+	Font = NULL;
+
+	if (StaticTextCount == 0)
+	{
+		memset(&MainClass, 0, sizeof(WNDCLASSEX));
+		MainClass.cbSize = sizeof(WNDCLASSEX);
+		MainClass.lpszClassName = L"STATICTEXT_CONTROL";
+		MainClass.hInstance = instance_;
+		MainClass.style = CS_VREDRAW | CS_HREDRAW | CS_OWNDC;
+		MainClass.lpfnWndProc = (WNDPROC)&StaticTextProc;
+		MainClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		RegisterClassEx(&MainClass);
+
+	}
+	StaticTextCount++;
+}
+
+StaticText::~StaticText()
+{
+	if (Font != NULL)
+		DeleteObject(Font);
+	if (TextBackground != NULL)
+		DeleteObject(TextBackground);
+	StaticTextCount--;
+	if (StaticTextCount == 0)
+	{
+		UnregisterClass(L"STATICTEXT_CONTROL", instance_);
+	}
+}
+
+
+int StaticText::CreateControl(HWND Parent, int pos_X, int pos_Y, int size_x, int size_y, char* Text_, COLORREF TextColor_, HBRUSH TexBackground_, int font_size, int font_width, char* Font_Name)
+{
+	char FontName[100];
+
+	if(Parent!=NULL)
+		Parent_=Parent;
+
+	posX = pos_X;
+	posY = pos_Y;
+	sizeX = size_x;
+	sizeY = size_y;
+	fontSize = font_size;
+	fontWidth = font_width;
+	TextColor = TextColor_;
+	TextBackground = TexBackground_;
+	memset(Text, 0, 100);
+	memset(FontName, 0, 100);
+	if (Text_ != NULL)
+		strcpy_s(Text, 100, Text_);
+	if (Font_Name != NULL)
+		strcpy_s(FontName, 100, Font_Name);
+	else strcpy(FontName, "Times New Roman");
+
+	Font = CreateFontA(fontSize, fontWidth, 0, 0, 1, 0, 0, 0, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, FontName);
+	MainWND = CreateWindow(L"STATICTEXT_CONTROL", NULL, WS_VISIBLE | WS_CHILD, posX, posY, sizeX, sizeY, Parent_, NULL, instance_, 0);
+
+	if (MainWND == NULL) return -1;
+
+
+	SetProp(MainWND, L"STATIC_TEXT", (HANDLE)this);
+
+	return 0;
+}
+
+
+int StaticText::GetText(char* Text_, int size)
+{
+	if (Text == NULL) return 1;
+
+	if (strlen(Text)> size) return 2;
+
+	strcpy(Text_, Text);
+	return 0;
+}
+
+int StaticText::SetText(char* Text_)
+{
+	int size;
+
+	if (Text == NULL) return 1;
+
+	size = strlen(Text_);
+
+	if (size > 100)
+		return 2;
+
+	memset(Text, 0, 100);
+	strcpy(Text,Text_);
+	SendMessage(MainWND, WM_PAINT, 0, 0);
+
+	return 0;
+}
+
+int StaticText::SetPosition(int px, int py, UINT Flags)
+{
+	posX = px;
+	posY = py;
+	SetWindowPos(MainWND, NULL, posX, posY, sizeX, sizeY, Flags);
+	return 0;
 }

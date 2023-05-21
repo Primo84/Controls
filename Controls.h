@@ -15,9 +15,9 @@ LRESULT CALLBACK SysButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
 LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
-//Funkcja Wyliczaj¹ca okan nale¿¹ce do okna g³ównego
+//Funkcja Kontrolki Statycznej wyœwietlaj¹cej text
 
-BOOL CALLBACK EnumChildW(_In_ HWND   hwnd, _In_ LPARAM lParam);
+LRESULT CALLBACK StaticTextProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
 //Klasa kontroli systemowej
 
@@ -204,4 +204,47 @@ class CheckBox
 };
 
 
+/*
+	
+	---------------------------Static Text----------------------------------------
+
+
+*/
+
+class StaticText
+{
+	private:
+
+		WNDCLASSEX MainClass;
+
+	public:
+
+		HWND Parent_;
+		HWND MainWND;
+		HINSTANCE instance_;
+
+		char Text[100];
+		int posX, posY, sizeX, sizeY;
+		int fontSize;
+		int fontWidth;
+
+		HFONT Font;
+		COLORREF TextColor;
+		HBRUSH TextBackground;
+
+		 StaticText();
+		 StaticText(HWND Parent, HINSTANCE instance);
+		 ~StaticText();
+
+		 int CreateControl(HWND Parent, int pos_X, int pos_Y, int size_x, int size_y, char* Text_, COLORREF TextColor_, HBRUSH TexBackground_, int font_size, int font_width, char* Font_Name);
+
+		 int GetText(char* Text_, int size);
+
+		 int SetText(char* Text_);
+
+		 int SetPosition(int px, int py, UINT Flags);
+
+
+	protected:
+};
 
