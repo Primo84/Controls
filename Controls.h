@@ -1,4 +1,5 @@
 #pragma once
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "windows.h"
 #include "stdio.h"
@@ -18,6 +19,10 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 //Funkcja Kontrolki Statycznej wyœwietlaj¹cej text
 
 LRESULT CALLBACK StaticTextProc(HWND handle, int code, WPARAM wp, LPARAM lp);
+
+//Funkcja kontrolki przycisku
+
+LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp);
 
 //Klasa kontroli systemowej
 
@@ -248,3 +253,46 @@ class StaticText
 	protected:
 };
 
+
+
+/*
+
+	---------------------------Button Control----------------------------------------
+	Kontrolka po wcisniêciu wysy³a do okna rodzica wiadomœæ WM_COMMAND
+	WPARAM zawiera uchwyt kontrolki MainWND
+
+*/
+
+
+class ButtonControl
+{
+	
+
+
+	private:
+
+		WNDCLASSEX MainClass;
+
+	public:
+
+		HWND Parent_;						//Uchwyt okna rodzica
+		HWND MainWND;						//Uchwyt okna kontrolki
+		HINSTANCE instance_;				//Instancja aplikacji
+
+		HBRUSH ImageBckg;					//Obraz kontrolki
+		HBRUSH ImageMouseBckg;				//Obraz kontrolki, gdy myszka znajdzie siê w jej obszarze
+
+		int PosX, PosY, SizeX, SizeY;				//Wpó³rzêdne oraz rozmiar kontrolki
+
+		ButtonControl();
+		ButtonControl(HWND Parent, HINSTANCE instance);
+		~ButtonControl();
+
+		int CreateControl(HWND Parent, HINSTANCE instance, HBRUSH Background, HBRUSH MouseBackground, int posX, int posY, int sizeX, int sizeY);
+
+	protected:
+
+
+
+
+};

@@ -6,6 +6,7 @@ int SysButton_Count = 0;
 int MenuButtonCount = 0;
 int CheckBoxCount = 0;
 int StaticTextCount = 0;
+int ButtonControlCount = 0;
 
 HBRUSH Brush;
 TRACKMOUSEEVENT MouseEvent_sys, MouseEvent_menu, MouseEven_menuItem;
@@ -51,8 +52,8 @@ LRESULT CALLBACK SysButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 	case WM_DESTROY:
 	{
 		SButton = (Sys_Button*)GetProp(handle, L"CLASS_BUTTON");
-		delete SButton;
 		RemoveProp(handle, L"CLASS_BUTTON");
+		delete SButton;
 		//PostQuitMessage(0);
 		break;
 	}
@@ -425,7 +426,7 @@ LRESULT CALLBACK MenuItemProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				WinHook = NULL;
 				WindowHookHandle = NULL;
 			}
-			
+			RemoveProp(handle, L"MENU_BUTTON");
 			break;
 		}
 		case WM_MOUSEMOVE:
@@ -610,6 +611,7 @@ LRESULT CALLBACK MenuButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 	case WM_DESTROY:
 	{
 		MButton = (MenuButton*)GetProp(handle, L"MENU_BUTTON");
+		RemoveProp(handle, L"MENU_BUTTON");
 		delete MButton;
 		break;
 	}
@@ -1445,6 +1447,9 @@ LRESULT CALLBACK StaticTextProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 		}
 		case WM_DESTROY:
 		{
+			StaticT = (StaticText*)GetProp(handle, L"STATIC_TEXT");
+			RemoveProp(handle, L"STATIC_TEXT");
+			delete(StaticT);
 			break;
 		}
 		case WM_PAINT:
@@ -1618,5 +1623,117 @@ int StaticText::SetPosition(int px, int py, UINT Flags)
 	posX = px;
 	posY = py;
 	SetWindowPos(MainWND, NULL, posX, posY, sizeX, sizeY, Flags);
+	return 0;
+}
+
+
+/*
+
+	---------------------------Button Control----------------------------------------
+
+
+*/
+
+
+
+LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
+{
+	ButtonControl* BC;
+	switch (code)
+	{
+		case  WM_CLOSE:
+		{
+			DestroyWindow(handle);
+			break;
+		}
+
+		case WM_DESTROY:
+		{
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+			if (BC->ImageBckg != NULL)
+				DeleteObject(BC->ImageBckg);
+			if (BC->ImageBckg != NULL)
+				DeleteObject(BC->ImageMouseBckg);
+			RemoveProp(handle, L"BUTTON_CONTROL");
+			delete(BC);
+			break;
+		}
+		default: return DefWindowProc(handle, code, wp, lp);
+	}
+}
+
+
+ButtonControl::ButtonControl(HWND Parent, HINSTANCE instance)
+{
+
+	if (Parent != NULL)
+		Parent_ = Parent;
+	if (instance != NULL)
+		instance_ = instance;
+	MainWND = NULL;
+
+	if (ButtonControlCount == 0)
+	{
+		memset(&MainClass, 0, sizeof(WNDCLASSEX));
+		MainClass.cbSize = sizeof(WNDCLASSEX);
+		MainClass.lpszClassName = L"BUTTON_CONTROL";
+		MainClass.hInstance = instance_;
+		MainClass.style = CS_VREDRAW | CS_HREDRAW | CS_PARENTDC;
+		MainClass.lpfnWndProc = (WNDPROC)&ButtonProc;
+		MainClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		RegisterClassEx(&MainClass);
+
+	}
+	ButtonControlCount++;
+
+}
+
+
+ButtonControl::ButtonControl()
+{
+	Parent_ = NULL;
+	instance_ = NULL;
+	MainWND = NULL;
+	ImageBckg = NULL;
+	ImageMouseBckg = NULL;
+
+	if (ButtonControlCount == 0)
+	{
+		memset(&MainClass, 0, sizeof(WNDCLASSEX));
+		MainClass.cbSize = sizeof(WNDCLASSEX);
+		MainClass.lpszClassName = L"BUTTON_CONTROL";
+		MainClass.hInstance = instance_;
+		MainClass.style = CS_VREDRAW | CS_HREDRAW | CS_PARENTDC;
+		MainClass.lpfnWndProc = (WNDPROC)&ButtonProc;
+		MainClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+		RegisterClassEx(&MainClass);
+
+	}
+	ButtonControlCount++;
+}
+
+ButtonControl::~ButtonControl()
+{
+	ButtonControlCount--;
+	if (ButtonControlCount == 0)
+	{
+		UnregisterClass(L"BUTTON_CONTROL", instance_);
+	}
+}
+
+int ButtonControl::CreateControl(HWND Parent, HINSTANCE instance, HBRUSH Background, HBRUSH MouseBackground, int posX, int posY, int sizeX, int sizeY)
+{
+	Parent_ = Parent;
+	instance_ = instance;
+	ImageBckg = Background;
+	ImageMouseBckg = MouseBackground;
+	PosX = posX;
+	PosY = posY;
+	SizeX = sizeX;
+	SizeY = sizeY;
+
+	MainWND = CreateWindow(L"BUTTON_CONTROL", NULL, WS_VISIBLE | WS_CHILD, posX, posY, sizeX, sizeY, Parent_, NULL, instance_, 0);
+	SetProp(MainWND, L"BUTTON_CONTROL", this);
+
 	return 0;
 }
