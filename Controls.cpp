@@ -2,6 +2,7 @@
 #include "Controls.h"
 #include "Windowsx.h"
 
+
 int SysButton_Count = 0;
 int MenuButtonCount = 0;
 int CheckBoxCount = 0;
@@ -9,7 +10,7 @@ int StaticTextCount = 0;
 int ButtonControlCount = 0;
 
 HBRUSH Brush;
-TRACKMOUSEEVENT MouseEvent_sys, MouseEvent_menu, MouseEven_menuItem;
+TRACKMOUSEEVENT MouseEvent_sys, MouseEvent_menu, MouseEven_menuItem, MouseEvent_Button;
 BOOL MoseFirst_sys = TRUE;
 
 MenuItem* MemMenuIt;
@@ -1639,6 +1640,15 @@ int StaticText::SetPosition(int px, int py, UINT Flags)
 LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 {
 	ButtonControl* BC;
+	
+	LOGBRUSH HBR;
+	PAINTSTRUCT PS;
+	int i;
+	RECT W_Rect, F_Rect;
+	HBITMAP HB;
+	BITMAP HBMP;
+	HDC DestDc, SrcDc;
+
 	switch (code)
 	{
 		case  WM_CLOSE:
@@ -1658,6 +1668,107 @@ LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 			delete(BC);
 			break;
 		}
+
+		case WM_MOUSEMOVE:
+		{
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+			if (BC->isMouse == TRUE) break;
+			BC->isMouse = TRUE;
+			MouseEvent_Button.cbSize = sizeof(TRACKMOUSEEVENT);
+			MouseEvent_Button.dwFlags = TME_LEAVE;
+			MouseEvent_Button.dwHoverTime = 0;
+			MouseEvent_Button.hwndTrack = handle;
+			i = TrackMouseEvent(&MouseEvent_Button);
+			
+			GetWindowRect(handle, &W_Rect);
+			RedrawWindow(handle, &W_Rect, NULL, RDW_INTERNALPAINT);
+			break;
+		}
+		case WM_MOUSELEAVE:
+		{
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+			BC->isMouse = FALSE;
+			GetWindowRect(handle, &W_Rect);
+			RedrawWindow(handle, &W_Rect, NULL, RDW_INTERNALPAINT);
+
+			break;
+		}
+
+		case WM_ERASEBKGND:
+		{
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+
+
+			HB = !BC->isMouse ? BC->ImageBckg : BC->ImageMouseBckg;
+
+			DestDc = GetWindowDC(handle);
+
+			BeginPaint(handle, &PS);
+
+			if (HB != NULL)
+			{
+
+				GetObject((HANDLE)HB, sizeof(BITMAP), &HBMP);
+
+				SrcDc = CreateCompatibleDC(DestDc);
+
+				/*
+				F_Rect.left = 0;
+				F_Rect.top = 0;
+				F_Rect.right = BC->SizeX;
+				F_Rect.bottom = BC->SizeY;
+				FillRect(DestDc, &F_Rect, HB);
+				*/
+
+				SelectObject(SrcDc, HB);
+				BitBlt(DestDc, 0, 0, BC->SizeX, BC->SizeY, SrcDc, 0, 0, SRCCOPY);
+				//DeleteObject(HB);
+				DeleteDC(SrcDc);
+			}
+
+			EndPaint(handle, &PS);
+			GetWindowRect(handle, &W_Rect);
+			RedrawWindow(handle, &W_Rect, NULL, RDW_INTERNALPAINT);
+			break;
+		}
+
+		case WM_PAINT:
+		{
+			
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+
+
+			HB = !BC->isMouse ? BC->ImageBckg : BC->ImageMouseBckg;
+		
+			DestDc = GetWindowDC(BC->Parent_);
+			
+			BeginPaint(handle, &PS);
+
+			if (HB != NULL)
+			{
+				
+				GetObject((HANDLE)HB, sizeof(BITMAP), &HBMP);
+
+				SrcDc = CreateCompatibleDC(DestDc);
+
+				/*
+				F_Rect.left = 0;
+				F_Rect.top = 0;
+				F_Rect.right = BC->SizeX;
+				F_Rect.bottom = BC->SizeY;
+				FillRect(DestDc, &F_Rect, HB);
+				*/
+				
+				SelectObject(SrcDc, HB);
+				BitBlt(DestDc, BC->PosX, BC->PosY, BC->SizeX, BC->SizeY, SrcDc, 0, 0, SRCCOPY);
+				//DeleteObject(HB);
+				DeleteDC(SrcDc);
+			}
+
+			EndPaint(handle, &PS);
+
+			break;
+		}
 		default: return DefWindowProc(handle, code, wp, lp);
 	}
 }
@@ -1671,6 +1782,9 @@ ButtonControl::ButtonControl(HWND Parent, HINSTANCE instance)
 	if (instance != NULL)
 		instance_ = instance;
 	MainWND = NULL;
+	ImageBckg = NULL;
+	ImageMouseBckg = NULL;
+	isMouse = FALSE;
 
 	if (ButtonControlCount == 0)
 	{
@@ -1696,6 +1810,7 @@ ButtonControl::ButtonControl()
 	MainWND = NULL;
 	ImageBckg = NULL;
 	ImageMouseBckg = NULL;
+	isMouse = FALSE;
 
 	if (ButtonControlCount == 0)
 	{
@@ -1721,7 +1836,7 @@ ButtonControl::~ButtonControl()
 	}
 }
 
-int ButtonControl::CreateControl(HWND Parent, HINSTANCE instance, HBRUSH Background, HBRUSH MouseBackground, int posX, int posY, int sizeX, int sizeY)
+int ButtonControl::CreateControl(HWND Parent, HINSTANCE instance, HBITMAP Background, HBITMAP MouseBackground, int posX, int posY, int sizeX, int sizeY)
 {
 	Parent_ = Parent;
 	instance_ = instance;
@@ -1732,7 +1847,7 @@ int ButtonControl::CreateControl(HWND Parent, HINSTANCE instance, HBRUSH Backgro
 	SizeX = sizeX;
 	SizeY = sizeY;
 
-	MainWND = CreateWindow(L"BUTTON_CONTROL", NULL, WS_VISIBLE | WS_CHILD, posX, posY, sizeX, sizeY, Parent_, NULL, instance_, 0);
+	MainWND = CreateWindowEx(WS_EX_TRANSPARENT | WS_EX_TOPMOST,L"BUTTON_CONTROL", NULL, WS_VISIBLE | WS_CHILD, posX, posY, sizeX, sizeY, Parent_, NULL, instance_, 0);
 	SetProp(MainWND, L"BUTTON_CONTROL", this);
 
 	return 0;

@@ -4,6 +4,8 @@
 #include "windows.h"
 #include "stdio.h"
 #include "tchar.h"
+#include "hckl.h"
+#include "resource.h"
 
 enum Button_Mode { close, minimize, maximize };   //Typ kontrolki systemowej
 enum Item_Mode { bott_right, bott_left, top_right, top_left };
@@ -279,16 +281,18 @@ class ButtonControl
 		HWND MainWND;						//Uchwyt okna kontrolki
 		HINSTANCE instance_;				//Instancja aplikacji
 
-		HBRUSH ImageBckg;					//Obraz kontrolki
-		HBRUSH ImageMouseBckg;				//Obraz kontrolki, gdy myszka znajdzie siê w jej obszarze
+		HBITMAP ImageBckg;					//Obraz kontrolki
+		HBITMAP ImageMouseBckg;				//Obraz kontrolki, gdy myszka znajdzie siê w jej obszarze
 
-		int PosX, PosY, SizeX, SizeY;				//Wpó³rzêdne oraz rozmiar kontrolki
+		int PosX, PosY, SizeX, SizeY;		//Wpó³rzêdne oraz rozmiar kontrolki
+
+		BOOL isMouse;						//Ustawione na TRUE kiedy myszka znajdzie siê w obszarze
 
 		ButtonControl();
 		ButtonControl(HWND Parent, HINSTANCE instance);
 		~ButtonControl();
 
-		int CreateControl(HWND Parent, HINSTANCE instance, HBRUSH Background, HBRUSH MouseBackground, int posX, int posY, int sizeX, int sizeY);
+		int CreateControl(HWND Parent, HINSTANCE instance, HBITMAP Background, HBITMAP MouseBackground, int posX, int posY, int sizeX, int sizeY);
 
 	protected:
 
