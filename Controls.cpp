@@ -1694,6 +1694,13 @@ LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 			break;
 		}
 
+		case WM_LBUTTONDOWN:
+		{
+			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
+			SendMessage(BC->Parent_, WM_COMMAND, (WPARAM)BC->MainWND, (LPARAM)0);
+			break;
+		}
+
 		case WM_ERASEBKGND:
 		{
 			BC = (ButtonControl*)GetProp(handle, L"BUTTON_CONTROL");
