@@ -1747,7 +1747,7 @@ LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 
 			HB = !BC->isMouse ? BC->ImageBckg : BC->ImageMouseBckg;
 		
-			DestDc = GetWindowDC(BC->Parent_);
+			DestDc = GetWindowDC(BC->MainWND);
 			
 			BeginPaint(handle, &PS);
 
@@ -1767,7 +1767,7 @@ LRESULT CALLBACK ButtonProc(HWND handle, int code, WPARAM wp, LPARAM lp)
 				*/
 				
 				SelectObject(SrcDc, HB);
-				BitBlt(DestDc, BC->PosX, BC->PosY, BC->SizeX, BC->SizeY, SrcDc, 0, 0, SRCCOPY);
+				BitBlt(DestDc, 0, 0, BC->SizeX, BC->SizeY, SrcDc, 0, 0, SRCCOPY);
 				//DeleteObject(HB);
 				DeleteDC(SrcDc);
 			}
